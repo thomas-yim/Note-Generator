@@ -8,6 +8,7 @@ from python_speech_features import mfcc, logfbank
 import librosa
 import json
 import clean
+from playsound import playsound
 
 def plot_signals(signals):
     fig, axes = plt.subplots(nrows=2, ncols=5, sharex=False,
@@ -137,5 +138,5 @@ plt.show()
 plot_mfccs(mfccs)
 plt.show()
 
-clean.cleanData(df, directory, instrument + '_clean_test')
+clean.cleanData(df, directory, instrument + '_clean_test/')
     

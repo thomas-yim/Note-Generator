@@ -65,7 +65,7 @@ def get_conv_model():
                      padding='same'))
     model.add(Conv2D(128, (3, 3), activation='relu', strides=(1, 1),
                      padding='same'))
-    model.add(MaxPool2D((2,2)))
+    #model.add(MaxPool2D((2,2)))
     model.add(Dropout(0.5))
     model.add(Flatten())
     model.add(Dense(128, activation='relu'))
@@ -111,6 +111,6 @@ checkpoint = ModelCheckpoint(config.model_path, monitor='val_acc', verbose=1,
                              save_weights_only=False, period=1)
 '''
 
-model.fit(X, y, epochs=8, shuffle=True, verbose=2, validation_split=0.1,)
+model.fit(X, y, epochs=10, shuffle=True, verbose=1)
 
 model.save(config.model_path)

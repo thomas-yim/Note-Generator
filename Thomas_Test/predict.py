@@ -31,20 +31,42 @@ def build_predictions(audio_dir):
     test_labels = to_categorical(test_labels, num_classes=88)
     return test_labels, test_audio
 
-audio_dir = "keyboard_electronic_clean_test/"
+#Change this variable to wherever your cleaned test data is stored
+audio_dir = "keyboard_electronic_clean_test"
+#Change this variable to wherever the nsynth json file with labels is stored
 jsonPath = "notefiles/examples.json"
-df = createDataFrameFromJson(audio_dir, jsonPath)
+#This is from another file. Puts the wav signal and label in a dataframe
+df = createDataFrameFromJson(audio_dir + "/", jsonPath)
+#Get a list of all the possible labels
 classes = list(np.unique(df.pitches))
+#This makes it an iterable dictionary
 fn2class = dict(zip(df.index, df.pitches))
 p_path = os.path.join("pickles", "conv.p")
 
+#This pickle file must not be uploaded to git.
+#This pickle contains the results from build_rand_feats in keyboard_model.py
 with open(p_path, 'rb') as handle:
     config = pickle.load(handle)
-    
+
+#Loads the existing model (looks for the .pb file)
 model=load_model(config.model_path)
 
-test_labels, test_audio = build_predictions('keyboard_electronic_clean_test')
-print(np.array(test_audio).shape)
-score, acc = model.evaluate(np.array(test_audio), test_labels)
+test_labels, test_audio = build_predictions(audio_dir)
+#This should print (numAudioFiles, 13, 9, 1)
+test_audio = np.array(test_audio)
+print(test_audio.shape)
 
-print(acc)
+score, acc = model.evaluate(test_audio, test_labels)
+predict_labels = model.predict(test_audio)
+
+count = 0
+wrong = []
+for i in range(0, predict_labels.shape[0]):
+    if (np.argmax(predict_labels[i]) == np.argmax(np.array(test_labels[i]))):
+        count += 1
+    else:
+        print(abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i]))))        
+        wrong.append(abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i]))))
+
+print("Number correct: " + str(count))
+print(sum(wrong)/len(wrong))
