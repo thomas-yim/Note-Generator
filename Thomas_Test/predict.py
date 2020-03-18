@@ -65,7 +65,10 @@ for i in range(0, predict_labels.shape[0]):
     if (np.argmax(predict_labels[i]) == np.argmax(np.array(test_labels[i]))):
         count += 1
     else:
-        print(abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i]))))        
+        if (abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i])))>10):
+            print(predict_labels[i][np.argmax(predict_labels[i])])
+            print(np.argmax(np.array(test_labels[i])))
+            print("")
         wrong.append(abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i]))))
 
 print("Number correct: " + str(count))
