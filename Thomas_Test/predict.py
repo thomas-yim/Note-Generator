@@ -60,16 +60,48 @@ score, acc = model.evaluate(test_audio, test_labels)
 predict_labels = model.predict(test_audio)
 
 count = 0
+count021 = 0
+total021 = 0
+count2243 = 0
+total2243 = 0
+count4465 = 0
+total4465 = 0
+count6687 = 0
+total6687 = 0
 wrong = []
 for i in range(0, predict_labels.shape[0]):
+    if (np.argmax(np.array(test_labels[i])) <= 21):
+        total021 += 1
+    elif (np.argmax(np.array(test_labels[i])) <= 43 and np.argmax(np.array(test_labels[i])) >= 21):
+        total2243 += 1
+    elif (np.argmax(np.array(test_labels[i])) <= 65 and np.argmax(np.array(test_labels[i])) >= 44):
+        total4465 += 1
+    else:
+        total6687 += 1
     if (np.argmax(predict_labels[i]) == np.argmax(np.array(test_labels[i]))):
         count += 1
     else:
+        if (np.argmax(np.array(test_labels[i])) <= 21):
+            count021 += 1
+        elif (np.argmax(np.array(test_labels[i])) <= 43 and np.argmax(np.array(test_labels[i])) >= 21):
+            count2243 += 1
+        elif (np.argmax(np.array(test_labels[i])) <= 65 and np.argmax(np.array(test_labels[i])) >= 44):
+            count4465 += 1
+        else:
+            count6687 += 1
+        '''
         if (abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i])))>10):
             print(predict_labels[i][np.argmax(predict_labels[i])])
             print(np.argmax(np.array(test_labels[i])))
             print("")
+        '''
         wrong.append(abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i]))))
 
 print("Number correct: " + str(count))
 print(sum(wrong)/len(wrong))
+
+print("Wrong between 0 and 21: " + str(count021) + "/" + str(total021) + " = " + str(count021/total021))
+print("Wrong between 22 and 43: " + str(count2243) + "/" + str(total2243) + " = " + str(count2243/total2243))
+print("Wrong between 44 and 65: " + str(count4465) + "/" + str(total4465) + " = " + str(count4465/total4465))
+print("Wrong between 66 and 87: " + str(count6687) + "/" + str(total6687) + " = " + str(count6687/total6687))
+
