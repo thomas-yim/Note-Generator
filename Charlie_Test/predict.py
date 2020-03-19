@@ -3,14 +3,27 @@ import os
 import numpy as np
 from tqdm import tqdm
 from scipy.io import wavfile
-from python_speech_features import mfcc
 from tensorflow.keras.models import load_model
 import pandas as pd
 from sklearn.metrics import accuracy_score
 from createDf import createDataFrameFromJson
 from tensorflow.keras.utils import to_categorical
+import librosa
+
+def check_data():
+    if os.path.isfile('pickles/test-data.p'):
+        print('Loading existing data for {} model'.format(config.mode))
+        with open('pickles/test-data.p','rb') as handle:
+            tmp = pickle.load(handle)
+            return tmp
+    else:
+        return None
 
 def build_predictions(audio_dir):
+    tmp = check_data()
+    if tmp:
+        return tmp.data[1], tmp.data[0]
+    
     test_labels = []
     test_audio = []
     
@@ -22,8 +35,7 @@ def build_predictions(audio_dir):
         
         for i in range(0, wav.shape[0]-config.step, config.step):
             sample = wav[i:i+config.step]
-            x=mfcc(sample, rate, numcep=config.nfeat,
-                   nfilt=config.nfilt, nfft=config.nfft).T
+            x = np.abs(librosa.cqt(sample, sr=rate))
             x = (x - config.min) / (config.max - config.min)
             x = x.reshape(x.shape[0], x.shape[1], 1)
             test_audio.append(x)
@@ -32,9 +44,9 @@ def build_predictions(audio_dir):
     return test_labels, test_audio
 
 #Change this variable to wherever your cleaned test data is stored
-audio_dir = "keyboard_electronic_clean_test"
+audio_dir = "guitar_clean"
 #Change this variable to wherever the nsynth json file with labels is stored
-jsonPath = "notefiles/examples.json"
+jsonPath = "labels.json"
 #This is from another file. Puts the wav signal and label in a dataframe
 df = createDataFrameFromJson(audio_dir + "/", jsonPath)
 #Get a list of all the possible labels
@@ -52,21 +64,50 @@ with open(p_path, 'rb') as handle:
 model=load_model(config.model_path)
 
 test_labels, test_audio = build_predictions(audio_dir)
-#This should print (numAudioFiles, 13, 9, 1)
 test_audio = np.array(test_audio)
-print(test_audio.shape)
 
 score, acc = model.evaluate(test_audio, test_labels)
 predict_labels = model.predict(test_audio)
 
-count = 0
-wrong = []
+correct = 0
+total = predict_labels.shape[0]
+count021 = 0
+total021 = 0
+count2243 = 0
+total2243 = 0
+count4465 = 0
+total4465 = 0
+count6687 = 0
+total6687 = 0
+error = []
 for i in range(0, predict_labels.shape[0]):
-    if (np.argmax(predict_labels[i]) == np.argmax(np.array(test_labels[i]))):
-        count += 1
+    if (np.argmax(np.array(test_labels[i])) <= 21):
+        total021 += 1
+    elif (np.argmax(np.array(test_labels[i])) <= 43 and np.argmax(np.array(test_labels[i])) >= 21):
+        total2243 += 1
+    elif (np.argmax(np.array(test_labels[i])) <= 65 and np.argmax(np.array(test_labels[i])) >= 44):
+        total4465 += 1
     else:
-        print(abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i]))))        
-        wrong.append(abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i]))))
+        total6687 += 1
+    if (np.argmax(predict_labels[i]) == np.argmax(np.array(test_labels[i]))):
+        correct += 1
+    else:
+        if (np.argmax(np.array(test_labels[i])) <= 21):
+            count021 += 1
+        elif (np.argmax(np.array(test_labels[i])) <= 43 and np.argmax(np.array(test_labels[i])) >= 21):
+            count2243 += 1
+        elif (np.argmax(np.array(test_labels[i])) <= 65 and np.argmax(np.array(test_labels[i])) >= 44):
+            count4465 += 1
+        else:
+            count6687 += 1
+        error.append(abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i]))))
 
-print("Number correct: " + str(count))
-print(sum(wrong)/len(wrong))
+print("Number correct: " + str(correct))
+print("Number wrong: " + str(total-correct))
+print("Accuracy: " + str(correct/(total) * 100) + "%")
+print("Average error: " + str(sum(error)/len(error)))
+print("---------------------------------------------------")
+print("Wrong between 0 and 21: " + str(count021) + "/" + str(total021) + " = " + str(count021/total021))
+print("Wrong between 22 and 43: " + str(count2243) + "/" + str(total2243) + " = " + str(count2243/total2243))
+print("Wrong between 44 and 65: " + str(count4465) + "/" + str(total4465) + " = " + str(count4465/total4465))
+print("Wrong between 66 and 87: " + str(count6687) + "/" + str(total6687) + " = " + str(count6687/total6687))

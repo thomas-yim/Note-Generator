@@ -10,4 +10,4 @@ class Config:
         self.step = int(rate/10)
         self.inst_filt = 'guitar'
         self.model_path = os.path.join('models/' + mode + '.model')
-        self.p_path = os.path.join('pickles/' + mode + '.model')
+        self.p_path = os.path.join('pickles/' + mode + '.p')
