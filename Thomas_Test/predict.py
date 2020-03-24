@@ -3,14 +3,28 @@ import os
 import numpy as np
 from tqdm import tqdm
 from scipy.io import wavfile
-from python_speech_features import mfcc
 from tensorflow.keras.models import load_model
 import pandas as pd
-from sklearn.metrics import accuracy_score
 from createDf import createDataFrameFromJson
 from tensorflow.keras.utils import to_categorical
+import librosa
+
+class TestData:
+    def __init__(self, instrument='keyboard_electronic'):
+        self.instrument = instrument
+        self.p_path = os.path.join('pickles', instrument + '.p')
+
+def check_data():
+    if os.path.isfile(testData.p_path):
+        print('Loading existing data for {} test data'.format(testData.instrument))
+        with open(testData.p_path, 'rb') as handle:
+            tmp = pickle.load(handle)
+            return tmp
 
 def build_predictions(audio_dir):
+    tmp = check_data()
+    if tmp:
+        return tmp.data[0], tmp.data[1]
     test_labels = []
     test_audio = []
     
@@ -22,13 +36,16 @@ def build_predictions(audio_dir):
         
         for i in range(0, wav.shape[0]-config.step, config.step):
             sample = wav[i:i+config.step]
-            x=mfcc(sample, rate, numcep=config.nfeat,
-                   nfilt=config.nfilt, nfft=config.nfft).T
+            # edited to use librosa.cqt instead of mfcc
+            x = librosa.cqt(sample, sr=rate)
             x = (x - config.min) / (config.max - config.min)
             x = x.reshape(x.shape[0], x.shape[1], 1)
             test_audio.append(x)
             test_labels.append(c)
     test_labels = to_categorical(test_labels, num_classes=88)
+    testData.data = (test_labels, test_audio)
+    with open(testData.p_path, 'wb') as handle:
+        pickle.dump(testData, handle, protocol=2)
     return test_labels, test_audio
 
 #Change this variable to wherever your cleaned test data is stored
@@ -51,6 +68,7 @@ with open(p_path, 'rb') as handle:
 #Loads the existing model (looks for the .pb file)
 model=load_model(config.model_path)
 
+testData = TestData("keyboard_electronic")
 test_labels, test_audio = build_predictions(audio_dir)
 #This should print (numAudioFiles, 13, 9, 1)
 test_audio = np.array(test_audio)
@@ -98,10 +116,10 @@ for i in range(0, predict_labels.shape[0]):
         wrong.append(abs(np.argmax(predict_labels[i]) - np.argmax(np.array(test_labels[i]))))
 
 print("Number correct: " + str(count))
-print(sum(wrong)/len(wrong))
+print("Average distance from correct pitch: " + str(sum(wrong)/len(wrong)))
 
-print("Wrong between 0 and 21: " + str(count021) + "/" + str(total021) + " = " + str(count021/total021))
-print("Wrong between 22 and 43: " + str(count2243) + "/" + str(total2243) + " = " + str(count2243/total2243))
-print("Wrong between 44 and 65: " + str(count4465) + "/" + str(total4465) + " = " + str(count4465/total4465))
-print("Wrong between 66 and 87: " + str(count6687) + "/" + str(total6687) + " = " + str(count6687/total6687))
+print("Wrong between 0 and 21: " + str(count021) + "/" + str(total021) + " = " + str(100*count021/total021) + "%")
+print("Wrong between 22 and 43: " + str(count2243) + "/" + str(total2243) + " = " + str(100*count2243/total2243) + "%")
+print("Wrong between 44 and 65: " + str(count4465) + "/" + str(total4465) + " = " + str(100*count4465/total4465) + "%")
+print("Wrong between 66 and 87: " + str(count6687) + "/" + str(total6687) + " = " + str(100*count6687/total6687) + "%")
 

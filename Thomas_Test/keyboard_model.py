@@ -14,6 +14,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 from cfg import Config
 from createDf import createDataFrameFromJson
 
+
 def check_data():
     if os.path.isfile(config.p_path):
         print('Loading existing data for {} model'.format(config.mode))
@@ -35,14 +36,15 @@ def build_rand_feat():
         file = np.random.choice(df[df.pitches==rand_class].index)
         rate, wav = wavfile.read('keyboard_electronic_clean/'+file)
         label = df.at[file, 'pitches']
-        rand_index = np.random.randint(0, wav.shape[0]-config.step)
-        sample = wav[rand_index:rand_index+config.step]
-        X_sample = mfcc(sample, rate,
-                        numcep=config.nfeat, nfilt=config.nfilt, nfft=config.nfft).T
-        _min = min(np.amin(X_sample), _min)
-        _max = max(np.amax(X_sample), _max)
-        X.append(X_sample if config.mode == 'conv' else X_sample.T)
-        y.append(classes.index(label))
+        if wav.shape[0]-config.step > 0:
+            rand_index = np.random.randint(0, wav.shape[0]-config.step)
+            sample = wav[rand_index:rand_index+config.step]
+            # edited to use librosa.cqt instead of mfcc
+            X_sample = librosa.cqt(sample, sr=rate)
+            _min = min(np.amin(X_sample), _min)
+            _max = max(np.amax(X_sample), _max)
+            X.append(X_sample)
+            y.append(classes.index(label))
     config.min = _min
     config.max = _max
     X, y = np.array(X), np.array(y)
@@ -59,13 +61,15 @@ def build_rand_feat():
 
 def get_conv_model():
     model = Sequential()
-    model.add(Conv2D(32, (3, 3), activation='relu', strides=(1, 1),
+    model.add(Conv2D(16, (3,3), activation='relu', strides=(1,1), 
                      padding='same', input_shape=input_shape))
-    model.add(Conv2D(64, (3, 3), activation='relu', strides=(1, 1),
+    model.add(Conv2D(32, (3,3), activation='relu', strides=(1,1), 
                      padding='same'))
-    model.add(Conv2D(128, (3, 3), activation='relu', strides=(1, 1),
+    model.add(Conv2D(64, (3,3), activation='relu', strides=(1,1), 
                      padding='same'))
-    #model.add(MaxPool2D((2,2)))
+    model.add(Conv2D(128, (3,3), activation='relu', strides=(1,1), 
+                     padding='same'))
+    model.add(MaxPool2D((2,2)))
     model.add(Dropout(0.5))
     model.add(Flatten())
     model.add(Dense(128, activation='relu'))
@@ -97,7 +101,7 @@ plt.show()
 config = Config(mode='conv')
 X, y = build_rand_feat()
 y_flat = np.argmax(y, axis=1)
-input_shape = (X.shape[1], X.shape[2], 1)
+input_shape = (X.shape[1], X.shape[2],1)
 model = get_conv_model()
     
 class_weight = compute_class_weight('balanced',
