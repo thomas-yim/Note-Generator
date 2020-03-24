@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.io import wavfile
 from python_speech_features import mfcc, logfbank
 import librosa
+import librosa.display
 import json
 import clean
 
@@ -81,6 +82,15 @@ def calc_fft(y, rate):
     freq = np.fft.rfftfreq(n, d=1/rate)
     Y = abs(np.fft.rfft(y)/n)
     return (Y, freq)
+
+def graphCQT(signal, rate):
+    C = np.abs(librosa.cqt(signal, sr=rate))
+    librosa.display.specshow(librosa.amplitude_to_db(C, ref=np.max),
+                             sr=rate, x_axis='time', y_axis='cqt_note')
+    plt.colorbar(format='%+2.0f dB')
+    plt.title('Constant-Q power spectrum')
+    plt.tight_layout()
+    plt.show()
     
 with open("notefiles/examples.json", 'r') as f:
     exampleNotes = json.load(f)
@@ -135,5 +145,5 @@ plt.show()
 plot_mfccs(mfccs)
 plt.show()
 
-cleanData(df, 'notefiles', 'clean', os)
+#cleanData(df, 'notefiles', 'clean', os)
     
