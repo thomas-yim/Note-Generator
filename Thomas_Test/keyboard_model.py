@@ -10,10 +10,9 @@ from sklearn.utils.class_weight import compute_class_weight
 from tqdm import tqdm
 from python_speech_features import mfcc
 import pickle
-from tensorflow.keras.callbacks import ModelCheckpoint
 from cfg import Config
 from createDf import createDataFrameFromJson
-
+import librosa
 
 def check_data():
     if os.path.isfile(config.p_path):
@@ -34,7 +33,7 @@ def build_rand_feat():
     for _ in tqdm(range(n_samples)):
         rand_class = np.random.choice(class_dist.index, p=prob_dist)
         file = np.random.choice(df[df.pitches==rand_class].index)
-        rate, wav = wavfile.read('keyboard_electronic_clean/'+file)
+        rate, wav = wavfile.read(instrument + '_clean/'+file)
         label = df.at[file, 'pitches']
         if wav.shape[0]-config.step > 0:
             rand_index = np.random.randint(0, wav.shape[0]-config.step)
@@ -49,10 +48,7 @@ def build_rand_feat():
     config.max = _max
     X, y = np.array(X), np.array(y)
     X = (X - _min) / (_max - _min)
-    if config.mode == 'conv':
-        X = X.reshape(X.shape[0], X.shape[1], X.shape[2], 1)
-    elif config.mode == 'time':
-        X = X.reshape(X.shape[0], X.shape[1], X.shape[2])
+    X = X.reshape(X.shape[0], X.shape[1], X.shape[2], 1)
     y = to_categorical(y, num_classes=88)
     config.data = (X,y)
     with open(config.p_path, 'wb') as handle:
@@ -61,10 +57,8 @@ def build_rand_feat():
 
 def get_conv_model():
     model = Sequential()
-    model.add(Conv2D(16, (3,3), activation='relu', strides=(1,1), 
-                     padding='same', input_shape=input_shape))
     model.add(Conv2D(32, (3,3), activation='relu', strides=(1,1), 
-                     padding='same'))
+                     padding='same', input_shape=input_shape))
     model.add(Conv2D(64, (3,3), activation='relu', strides=(1,1), 
                      padding='same'))
     model.add(Conv2D(128, (3,3), activation='relu', strides=(1,1), 
@@ -80,9 +74,10 @@ def get_conv_model():
                   metrics=['acc'])
     return model
 
+instrument = input("Input an instrument here: ")
 jsonPath = "nsynth-valid.jsonwav/nsynth-valid/examples.json"
-audioDir = "keyboard_electronic_clean/"
-df = createDataFrameFromJson(audioDir, jsonPath)
+audioDir = instrument + "_clean/"
+df = createDataFrameFromJson(audioDir, jsonPath, instrument)
 
 classes = list(np.unique(df.pitches))
 class_dist = df.groupby(['pitches'])['length'].mean()
@@ -98,7 +93,7 @@ ax.pie(class_dist, labels=class_dist.index, autopct='%1.1f%%',
 ax.axis('equal')
 plt.show()
 
-config = Config(mode='conv')
+config = Config(mode=instrument)
 X, y = build_rand_feat()
 y_flat = np.argmax(y, axis=1)
 input_shape = (X.shape[1], X.shape[2],1)
@@ -115,6 +110,6 @@ checkpoint = ModelCheckpoint(config.model_path, monitor='val_acc', verbose=1,
                              save_weights_only=False, period=1)
 '''
 
-model.fit(X, y, epochs=10, shuffle=True, verbose=1)
+model.fit(X, y, epochs=20, shuffle=True, verbose=1)
 
 model.save(config.model_path)

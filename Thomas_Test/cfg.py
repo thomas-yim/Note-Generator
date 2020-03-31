@@ -9,4 +9,4 @@ class Config:
         self.rate = rate
         self.step = int(rate/10)
         self.model_path = os.path.join('models', mode + '.model')
-        self.p_path = os.path.join('pickles', mode + '.p')
+        self.p_path = os.path.join('pickles', mode + '_train.p')

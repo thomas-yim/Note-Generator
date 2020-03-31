@@ -8,7 +8,7 @@ from python_speech_features import mfcc, logfbank
 import librosa
 import json
 import clean
-from playsound import playsound
+from createDf import createDataFrameFromJson
 
 def plot_signals(signals):
     fig, axes = plt.subplots(nrows=2, ncols=5, sharex=False,
@@ -53,11 +53,11 @@ def plot_fbank(fbank):
             i += 1
 
 def plot_mfccs(mfccs):
-    fig, axes = plt.subplots(nrows=16, ncols=5, sharex=False,
+    fig, axes = plt.subplots(nrows=10, ncols=5, sharex=False,
                              sharey=True, figsize=(20,5))
     fig.suptitle('Mel Frequency Cepstrum Coefficients', size=16)
     i = 0
-    for x in range(16):
+    for x in range(10):
         for y in range(5):
             axes[x,y].set_title(list(mfccs.keys())[i])
             axes[x,y].imshow(list(mfccs.values())[i],
@@ -83,26 +83,19 @@ def calc_fft(y, rate):
     Y = abs(np.fft.rfft(y)/n)
     return (Y, freq)
 
-directory = "notefiles/"
-#directory = "nsynth-valid.jsonwav/nsynth-valid/"
-with open(directory + "examples.json", 'r') as f:
-    exampleNotes = json.load(f)
-filenames = []
-pitches = []
+trainData = input("Is this for a train dataset (True or False case sensitive): ")
+print(type(trainData))
+if (trainData == "True"):
+    jsonPath = "nsynth-valid.jsonwav/nsynth-valid/examples.json"
+    audioDir = "nsynth-valid.jsonwav/nsynth-valid/"
+    dataType = "_clean/"
+else:
+    jsonPath = "notefiles/examples.json"
+    audioDir = "notefiles/"
+    dataType = "_clean_test/"
 instrument = input("Input an instrument here: ")
-for filename in exampleNotes:
-    if (filename[:len(instrument)] == instrument):
-        filenames.append(filename + ".wav")
-        pitches.append(exampleNotes[filename]['pitch'])
-
-dataframe = {'fname':filenames, 'pitches': pitches}
-df = pd.DataFrame(dataframe, columns=['fname', 'pitches'])
-
-df.set_index('fname', inplace=True)
-
-for f in df.index:
-    rate, signal = wavfile.read(directory + 'audio/' + f)
-    df.at[f, 'length'] = signal.shape[0]/rate
+#directory = "nsynth-valid.jsonwav/nsynth-valid/"
+df = createDataFrameFromJson(audioDir + "audio/", jsonPath, instrument)
     
 classes = list(np.unique(df['pitches']))
 class_dist = df.groupby(['pitches'])['length'].mean()
@@ -116,7 +109,7 @@ mfccs =  {}
 
 for c in classes:
     wav_file = df[df['pitches']==c].iloc[0,0]
-    signal, rate = librosa.load(directory + 'audio/'+wav_file, sr=16000)
+    signal, rate = librosa.load(audioDir + 'audio/'+wav_file, sr=16000)
     mask = envelope(signal, rate, 0.0005)
     signal = signal[mask]
     signals[c] = signal
@@ -138,5 +131,6 @@ plt.show()
 plot_mfccs(mfccs)
 plt.show()
 
-clean.cleanData(df, directory, instrument + '_clean_test/')
+print(audioDir)
+clean.cleanData(df, audioDir, instrument + dataType)
     
