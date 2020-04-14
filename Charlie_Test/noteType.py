@@ -27,10 +27,12 @@ def transient_probability(time, period):
     return 0.4 * pdf(0.00125*period, 0, timeP) + 0.15 * pdf(0.00125*period, period/4, timeP) + 0.3 * pdf(0.00125*period, period/2, timeP) + 0.15 * pdf(0.00125*period, 3*period/4, timeP) + 0.4 * pdf(0.00125*period, period, timeP)
 
 '''
-returns the calculated tempo of a piece of music given an array of the times
-the notes start from the beginning of the recording
+returns the calculated tempo of a piece of music given an array of the indexes
+in the signal array that each note starts and the signal rate
 '''
-def get_bpm(note_times):
+def get_bpm(note_starts, sr):
+    # converts array to time in seconds
+    note_times = (np.asarray(note_starts)-note_starts[0])/sr
     # adjusts the times to begin on the first note
     adj_times = np.asarray(note_times) - note_times[0]
     # array that will populate with the likelihood that a tempo is the correct tempo
@@ -48,19 +50,22 @@ def get_bpm(note_times):
 
 '''
 returns an array of the classifications of each note in a piece of music as an 
-eighth, quarter, half, etc. note given an array of the times each note starts,
-an array of the times each note stops, and the tempo of the piece
+eighth, quarter, half, etc. note given an array of when each note starts,
+an array of when each note stops, the signal rate and the tempo of the piece
 '''
-def classify_note_types(note_starts, note_ends, bpm):
+def classify_note_types(note_starts, note_ends, sr, bpm):
     # defined to help with naming
     note_classes = ["sixteenth", "eighth", "quarter", "half", "full"]
+    # converts arrays to time in seconds
+    start_times = (np.asarray(note_starts)-note_starts[0])/sr
+    end_times = (np.asarray(note_ends)-note_ends[0])/sr
     # duration of a quarter note
     q_dur = 60/bpm
     # array that will fill with the note classifications
     n_types = []
-    for i in range(len(note_starts)):
+    for i in range(len(start_times)):
         # calculates the index of the correct classification name in the note_classes array
-        type_index = int(round(math.log((note_ends[i] - note_starts[i])/q_dur,2) + 1))
+        type_index = int(round(math.log((end_times[i] - start_times[i])/q_dur,2) + 1))
         # adds the note classification to the array that will be returned
         try:
             n_types.append(note_classes[type_index])
