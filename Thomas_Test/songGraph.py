@@ -51,7 +51,7 @@ def calc_fft(y, rate):
 
 signals = {}
 fft = {}
-signal, rate = librosa.load('songfiles/test1.wav', sr=16000)
+signal, rate = librosa.load('songfiles/test7.wav', sr=16000)
 
 mask = envelope(signal, rate, 0.0005)
 signal = signal[mask]
@@ -62,13 +62,12 @@ plt.show()
 
 C = graphCQT(list(signals.values())[0], 16000)
 #Gets rid of all small values and all the negatives as well
-#signal[signal < 0] = 0.0
+signal[signal < 0] = 0.0
 
 fft["test"] = calc_fft(signal, rate)
 
 #Index of the last nonzero value
 last = 0
-#Convert it from numpy to a list and find the absolute value of all values
 listSignal = list(signal)
 for i in range(0,len(signal)):
     if listSignal[i] != 0.0:
@@ -81,12 +80,44 @@ for i in range(0,len(signal)):
 plot_signals(listSignal)
 plt.show()
 
-plot_signals(listSignal[300:1000])
+plot_signals(listSignal[700:8800])
 plt.show()
 
-print(max(listSignal))
+
+k=0
+maxValues=[]
+#Since the size of the rolling window is 100, we subtract 100 from the length
+while k < len(listSignal)-100:
+    #Find the maximum value to see where it spikes
+    _max = max(listSignal[k:k+100])
+    maxValues.append(_max)
+    #Roll onto the next 100
+    k += 100
+
+print(len(maxValues))
+
+plot_signals(maxValues)
+plt.show()
+
+sixteenth = 16000/16
+
+valueChanges = []
+for ii in range(0, len(maxValues)-1):
+    if maxValues[ii+1] - maxValues[ii] > max(maxValues)/4:
+        valueChanges.append(ii*100)
+
+cleanList = []
+cleanList.append(valueChanges[0])
+for j in range(0, len(valueChanges)-1):
+    if valueChanges[j+1]-valueChanges[j] > sixteenth:
+        cleanList.append(valueChanges[j+1])
+
+
+'''
 changes = []
 k = 0
+With the line if (_max- _min > 0.3), the 0.3 is the threshold. This will work
+if we have the right value for that one.
 #Since the size of the rolling window is 100, we subtract 100 from the length
 while k < len(listSignal)-100:
     #Find the maximum and minimum value to see where it spikes
@@ -102,8 +133,8 @@ cleanList.append(changes[0])
 print(max(changes))
 for i in range(0,len(changes)-1):
     #print(changes[i+1]-changes[i])
-    if changes[i+1]-changes[i] > 300:
         cleanList.append(changes[i+1])
+'''
         
 #Graphs of the individual rows of the constant q transform graph
 '''
