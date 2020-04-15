@@ -1,3 +1,11 @@
+"""
+Thomas Yim
+4/14/2020
+This file generates a pickle with randomized and processed data. It then trains
+the model for the keyboard
+
+"""
+
 import os
 from scipy.io import wavfile
 import matplotlib.pyplot as plt
@@ -14,6 +22,12 @@ from cfg import Config
 from createDf import createDataFrameFromJson
 import librosa
 
+
+"""
+This checks if there is a pickle so that it does not process the data every
+time the program runs. This is to save an hour on every run.
+It returns the pickle if it exists or none.
+"""
 def check_data():
     if os.path.isfile(config.p_path):
         print('Loading existing data for {} model'.format(config.mode))
@@ -23,6 +37,11 @@ def check_data():
     else:
         return None
 
+"""
+This function is modeled after the code from Deep Learning for Audio Classification
+On hundreds of audio of audio files, it can take an hour to process all the data
+It randomizes all the data and creates a pickle to run program without the hour wait
+"""
 def build_rand_feat():
     tmp = check_data()
     if tmp:
@@ -55,6 +74,9 @@ def build_rand_feat():
         pickle.dump(config, handle, protocol=2)
     return X,y
 
+"""
+This returns an instance of a model that has not been trained yet.
+"""
 def get_conv_model():
     model = Sequential()
     model.add(Conv2D(32, (3,3), activation='relu', strides=(1,1), 
@@ -74,27 +96,37 @@ def get_conv_model():
                   metrics=['acc'])
     return model
 
+#Ask the user for the instrument.
 instrument = input("Input an instrument here: ")
+#This examples.json file shows what files are labeled with what note
 jsonPath = "nsynth-valid.jsonwav/nsynth-valid/examples.json"
+#All wav files for training are in instrument_clean directories.
 audioDir = instrument + "_clean/"
+#This function takes all audio files and their label and puts it in one pandas df
 df = createDataFrameFromJson(audioDir, jsonPath, instrument)
 
+#This generates a list of [21, 22, 23, 24,..., 109]
 classes = list(np.unique(df.pitches))
+#This is to see how much data we have for each of the notes
 class_dist = df.groupby(['pitches'])['length'].mean()
 
 n_samples = 2*int(df['length'].sum()/0.1)
 prob_dist = class_dist / class_dist.sum()
 choices = np.random.choice(class_dist.index, p=prob_dist)
 
-fig, ax = plt.subplots()
-ax.set_title('Class Distribution', y=1.08)
-ax.pie(class_dist, labels=class_dist.index, autopct='%1.1f%%',
-       shadow=False, startangle=90)
-ax.axis('equal')
-plt.show()
-
+"""
+Note: We use the config so that when we test the accuracy in predict.py, we know
+what the min and max values are. This is necessary to scale the values from
+0 to 1.
+"""
 config = Config(mode=instrument)
 X, y = build_rand_feat()
+"""
+Each row in the y array is an array that shows what note it is labeled with.
+Structured like this:
+[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,]
+It finds the index of the 1.
+"""
 y_flat = np.argmax(y, axis=1)
 input_shape = (X.shape[1], X.shape[2],1)
 model = get_conv_model()
@@ -112,4 +144,5 @@ checkpoint = ModelCheckpoint(config.model_path, monitor='val_acc', verbose=1,
 
 model.fit(X, y, epochs=20, shuffle=True, verbose=1)
 
+#This saves the model to be used later in predict and songTranslator
 model.save(config.model_path)
