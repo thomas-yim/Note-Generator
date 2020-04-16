@@ -1,9 +1,9 @@
 '''
 Some notes:
+ - This algorithm is based on the findings of the following research paper:
+   https://www.ee.columbia.edu/~dpwe/papers/Laro01-swing.pdf
  - In this version, the BPM will be most accurately estimated if the piece
    is in 4/4 time (but it will be alright for 2/4 and 2/2 as well)
- - This version as not been extensively tested, so the accuracy of the tempo 
-   estimation is not known
 '''
 
 import math
