@@ -46,10 +46,10 @@ def printSplitGraphs(df):
         plt.show()
 
 signals = {}
-signal, rate = librosa.load('songfiles/test4.wav', sr=16000)
+signal, rate = librosa.load('songfiles/test7.wav', sr=16000)
 
-mask = envelope(signal, rate, 0.0005)
-signal = signal[mask]
+#mask = envelope(signal, rate, 0.0005)
+#signal = signal[mask]
 signals["test"] = signal
 
 #This plots the normal signal. It is hard to see, but it crosses the x-axis frequently
@@ -58,7 +58,7 @@ plt.show()
 
 
 #Gets rid of all the negatives because it is a mirror image across x-axis
-signal[signal < 0] = 0.0
+listSignal = list(abs(signal))
 
 #This will show the same graph, but it will be cut to show positive values
 plot_signals(listSignal)
