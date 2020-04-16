@@ -1,17 +1,6 @@
-import os
-from tqdm import tqdm
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.io import wavfile
-from python_speech_features import mfcc, logfbank
-import librosa
-from librosa import display
-import json
-import clean
 
-def splitIntoChunks(filename):
-    signal, rate = librosa.load(filename, sr=16000)
+def split_into_chunks(signal, sr):
     
     #Gets rid of all the negatives because it is a mirror image across x-axis
     listSignal = list(abs(signal))
@@ -24,7 +13,7 @@ def splitIntoChunks(filename):
     k=0
     maxValues=[]
     #Check for the maximum ever 1/64 of a second
-    rollingSize = int(16000/64)
+    rollingSize = int(sr/64)
     #Since the area is rolling, we need to stop it before it goes over
     while k < len(listSignal)-rollingSize:
         #Find the maximum value to see where it spikes
@@ -33,7 +22,7 @@ def splitIntoChunks(filename):
         #Roll onto the next 100
         k += rollingSize
     
-    sixteenth = 16000/16
+    sixteenth = int(sr/16)
     
     #This will contain all indices of places where the sound spikes
     valueChanges = []
@@ -99,8 +88,6 @@ def splitIntoChunks(filename):
     endings.append(finalEnd)
     
     #Put it in a dataframe to be used by noteType.py
-    dataframe = {'type':noteTypes, 'start':cleanList, 'end':endings}
-    df = pd.DataFrame(dataframe, columns=['type', 'start', 'end'])
+    dataframe = {'pitch':noteTypes, 'start':cleanList, 'end':endings}
+    df = pd.DataFrame(dataframe, columns=['pitch', 'start', 'end'])
     return df
-
-df = splitIntoChunks("songfiles/test3.wav")
