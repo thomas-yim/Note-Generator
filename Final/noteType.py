@@ -55,7 +55,8 @@ an array of when each note stops, the signal rate and the tempo of the piece
 '''
 def classify_note_types(note_starts, note_ends, sr, bpm):
     # defined to help with naming
-    note_classes = ["sixteenth", "eighth", "quarter", "half", "full"]
+    #note_classes = ["sixteenth", "eighth", "quarter", "half", "full"]
+    note_classes = [16, 8, 4, 2, 1]
     # converts arrays to time in seconds
     start_times = (np.array(note_starts)-note_starts[0])/sr
     end_times = (np.array(note_ends)-note_starts[0])/sr
