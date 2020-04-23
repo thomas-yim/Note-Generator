@@ -1,6 +1,8 @@
 import numpy as np
 import mingus.extra.lilypond as lily
 import mingus.containers as containers
+import os
+import subprocess
 
 
 def find_key(song_notes):
@@ -57,7 +59,7 @@ def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='test'):
             bars.append(containers.Bar(key=key))
             current_bar += 1
             bar_length = 0
-        if n != 0:
+        if note != 0:
             bars[current_bar].place_notes(containers.Note().from_int(note - 12), note_lengths[n])
         else:
             bars[current_bar].place_rest(note_lengths[n])
@@ -68,6 +70,7 @@ def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='test'):
     comp = containers.Composition()
     comp.add_track(track)
     comp.set_title(song_name)
-    lily.to_pdf(lily.from_Composition(comp), fname)
+    lily_string = lily.from_Composition(comp)
+    save_string_and_execute_LilyPond(lily_string, fname)
         
 create_sheet(np.array(df['pitch']), np.array(df['length']))
