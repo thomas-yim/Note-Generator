@@ -46,7 +46,7 @@ def printSplitGraphs(df):
         plt.show()
 
 signals = {}
-signal, rate = librosa.load('songfiles/test7.wav', sr=16000)
+signal, rate = librosa.load('songfiles/test1.wav', sr=16000)
 
 #mask = envelope(signal, rate, 0.0005)
 #signal = signal[mask]
@@ -61,7 +61,7 @@ plt.show()
 listSignal = list(abs(signal))
 
 #This will show the same graph, but it will be cut to show positive values
-plot_signals(listSignal)
+plot_signals(listSignal[10000:10250])
 plt.show()
 
 """
