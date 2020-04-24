@@ -1,7 +1,8 @@
 import os
 import subprocess
 
-def save_string_and_execute_LilyPond(filename):
+#The following code is modeled after the mingus.extra.lilypond library
+def save_string_and_execute_LilyPond(ly_string, filename):
     """A helper function for to_png and to_pdf. Should not be used directly."""
     command = 'lilypond "%s.ly"' % (filename)
     print("Executing...")
