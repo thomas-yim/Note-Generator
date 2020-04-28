@@ -57,24 +57,25 @@ def find_key(song_notes):
         key = 'C'
     return key
 
-def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='test'):
+def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='lengthTest'):
     key = find_key(song_notes)
     bars = [containers.Bar(key=key)]
     current_bar = 0
     bar_length = 0
-    n = 0
-    for note in song_notes:
-        bar_length += 1/note_lengths[n]
-        if bar_length > 1:
+    for i in range(0, len(song_notes)):
+        note = song_notes[i]
+        if bar_length >= 1:
             bars.append(containers.Bar(key=key))
             current_bar += 1
             bar_length = 0
         if note != 0:
-            bars[current_bar].place_notes(containers.Note().from_int(note - 12), note_lengths[n])
+            print(bars[current_bar].place_notes(containers.Note().from_int(note - 12), note_lengths[i]))
         else:
-            bars[current_bar].place_rest(note_lengths[n])
-        n += 1
+            bars[current_bar].place_rest(note_lengths[i])
+        print(bars)
+        bar_length += 1/note_lengths[i]
     track = containers.Track()
+    print(bars)
     for bar in bars:
         track.add_bar(bar)
     comp = containers.Composition()

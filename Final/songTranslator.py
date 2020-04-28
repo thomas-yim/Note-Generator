@@ -35,7 +35,7 @@ def get_notes(df, model_path, signal, sr):
             pitch.append(np.argmax(likelihood) + 21)
     return pitch
             
-song_path = 'testsongs/test7.wav'
+song_path = 'testsongs/note length.wav'
 model_path = 'models/guitar.model'
     
 signal, rate = librosa.load(song_path, 16000)

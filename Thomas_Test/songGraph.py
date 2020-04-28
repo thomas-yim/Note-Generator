@@ -46,7 +46,7 @@ def printSplitGraphs(df):
         plt.show()
 
 signals = {}
-signal, rate = librosa.load('songfiles/test1.wav', sr=16000)
+signal, rate = librosa.load('songfiles/noteLengthsTest.wav', sr=16000)
 
 #mask = envelope(signal, rate, 0.0005)
 #signal = signal[mask]
@@ -94,14 +94,9 @@ for i in range(0, len(maxValues)-1):
     if maxValues[i+1] - maxValues[i] > max(maxValues)/4:
         #We multiply by rolling size to get the real index back from it
         valueChanges.append(i*rollingSize)
+    
 
-#This list will contain the indices of all the starts of the arrays
-cleanList = []
-#For each value in clean List, noteTypes will have a 1 (note) or a 0 (rest)
-noteTypes=[]
-#We know that the first spike is a note so we add that one
-cleanList.append(valueChanges[0])
-noteTypes.append(1)
+
 
 #This will become equal to the smallest interval betwen notes (shortest note)
 _min = float('inf')
@@ -111,6 +106,14 @@ Note: The following code is necessary because the sigal spikes multiple times
 at the start of each new note. Thus, the previous loop counts all of them. The
 following code gets rid of the duplicates
 """
+
+#This list will contain the indices of all the starts of the arrays
+cleanList = []
+#For each value in clean List, noteTypes will have a 1 (note) or a 0 (rest)
+noteTypes=[]
+#We know that the first spike is a note so we add that one
+cleanList.append(valueChanges[0])
+
 for j in range(0, len(valueChanges)-1):
     change = valueChanges[j+1] - valueChanges[j]    
     #If the time between the supposed start of two notes is less than a set
@@ -120,20 +123,26 @@ for j in range(0, len(valueChanges)-1):
         if change < _min:
             _min = change
         cleanList.append(valueChanges[j+1])
-        noteTypes.append(1)
+
         
 """
 The following code checks for any rests
 """
+endings = []
+notesAndRestStarts = []
 for l in range(0, len(cleanList)-1):
-    #If the time between two notes is longer than the shortest length by a large
-    #amount, it may be a rest
-    if (cleanList[l+1] - cleanList[l])/_min > 1.5:
-        #For the time after a set note, if it drops off to less than 0.1, its a rest
-        if max(listSignal[cleanList[l] + _min : cleanList[l+1]]) < 0.1:
-            cleanList.insert(l+1, cleanList[l] + _min)
-            noteTypes.insert(l+1, 0)
-
+    notesAndRestStarts.append(cleanList[l])
+    noteTypes.append(1)
+    for maxIndex in range(cleanList[l], cleanList[l+1], rollingSize):     
+        if (maxValues[int(maxIndex/rollingSize)+1] < 0.1):
+            endings.append(maxIndex+1)
+            notesAndRestStarts.append(maxIndex+1)
+            endings.append(cleanList[l+1])
+            noteTypes.append(0)
+            break
+    
+notesAndRestStarts.append(cleanList[l+1])
+noteTypes.append(1)
 """
 The previous loops get the starts of all notes and the ends of all but the last note
 This just checks to see when it gets quiet enough where the note should end.
@@ -146,18 +155,17 @@ else:
         if max(listSignal[finalEnd : finalEnd + _min]) < 0.1:
             break
         finalEnd += _min
-
-endings = cleanList[1:]
+        
 endings.append(finalEnd)
 
 #Put it in a dataframe to be used by noteType.py
-dataframe = {'type':noteTypes, 'start':cleanList, 'end':endings}
+dataframe = {'type':noteTypes, 'start':notesAndRestStarts, 'end':endings}
 df = pd.DataFrame(dataframe, columns=['type', 'start', 'end'])
 
 printSplitGraphs(df)
 
 '''
-NOTE: THE FOLLOWING CODE IS A WORKING VERSION THAT IS LESS VERSATILE...
+NOTE: THE FOLLOWING CODE IS ARE WORKING VERSIONS THAT IS LESS VERSATILE...
 
 THRESHOLDING MIN VERSUS MAX WITHIN A ROLLING WINDOW OF 100
 changes = []
