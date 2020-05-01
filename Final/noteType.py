@@ -33,6 +33,7 @@ in the signal array that each note starts and the signal rate
 def get_bpm(note_starts, sr):
     # converts array to time in seconds
     note_times = (np.asarray(note_starts)-note_starts[0])/sr
+    print(note_times)
     # adjusts the times to begin on the first note
     adj_times = np.asarray(note_times) - note_times[0]
     # array that will populate with the likelihood that a tempo is the correct tempo
@@ -72,7 +73,7 @@ def classify_note_types(note_starts, note_ends, sr, bpm):
             n_types.append(note_classes[type_index])
         except Exception:
             if type_index < 0:
-                n_types.append("short")
+                n_types.append(16)
             else:
-                n_types.append("long")
+                n_types.append(1)
     return n_types

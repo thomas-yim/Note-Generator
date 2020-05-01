@@ -38,7 +38,7 @@ def check_data():
         return None
 
 """
-This function is modeled after the code from Deep Learning for Audio Classification
+This function is modeled after the tutorial code from Deep Learning for Audio Classification Youtube
 On hundreds of audio of audio files, it can take an hour to process all the data
 It randomizes all the data and creates a pickle to run program without the hour wait
 """

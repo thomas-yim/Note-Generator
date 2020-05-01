@@ -18,7 +18,7 @@ def get_notes(df, model_path, signal, sr):
             _min, _max = float('inf'), -float('inf')
             for t in range(df['start'][i], df['end'][i] - step, step):
                 sample = signal[t:t+step]
-                x = np.abs(librosa.cqt(sample, sr=rate))
+                x = np.abs(librosa.cqt(sample, sr=sr))
                 _min = min(np.amin(x), _min)
                 _max = max(np.amax(x), _max)
                 cqt.append(x)
@@ -35,26 +35,28 @@ def get_notes(df, model_path, signal, sr):
             pitch.append(np.argmax(likelihood) + 21)
     return pitch
             
-song_path = 'testsongs/test7.wav'
-model_path = 'models/guitar.model'
+def recognizeSong(filename):
+    song_path = 'testsongs/' + filename + '.wav'
+    model_path = 'models/guitar.model'
+        
+    signal, rate = librosa.load(song_path, 16000)
     
-signal, rate = librosa.load(song_path, 16000)
-
-df = pd.DataFrame(sa.split_into_chunks(signal, rate))
-
-note_mask = []
-for p in df['pitch']:
-    if p == 1:
-        note_mask.append(True)
-    else:
-        note_mask.append(False)
-bpm = nt.get_bpm(np.array(df['start'][note_mask]), rate)
-
-
-df.insert(1, 'length', nt.classify_note_types(np.array(df['start']), np.array(df['end']), rate, bpm))
-
-df['pitch'] = get_notes(df, model_path, signal, rate)
-
-print()
-print()
-print("Estimated tempo: " + str(bpm))
+    df = pd.DataFrame(sa.split_into_chunks(signal, rate))
+    
+    note_mask = []
+    for p in df['pitch']:
+        if p == 1:
+            note_mask.append(True)
+        else:
+            note_mask.append(False)
+    bpm = nt.get_bpm(np.array(df['start'][note_mask]), rate)
+    
+    
+    df.insert(1, 'length', nt.classify_note_types(np.array(df['start']), np.array(df['end']), rate, bpm))
+    
+    df['pitch'] = get_notes(df, model_path, signal, rate)
+    
+    print()
+    print()
+    print("Estimated tempo: " + str(bpm))
+    return df
