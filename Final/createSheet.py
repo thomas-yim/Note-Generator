@@ -8,6 +8,7 @@ import subprocess
 def save_string_and_execute_LilyPond(lilyString, filename):
     file = open(filename + ".ly", "a")
     file.write(lilyString)
+    print(filename)
     file.close()
     command = 'lilypond "%s.ly"' % (filename)
     print("Executing...")
@@ -18,7 +19,7 @@ def save_string_and_execute_LilyPond(lilyString, filename):
 def find_key(song_notes):
     notes = np.zeros(12)
     for n in song_notes:
-        if n != 0:
+        if note != 0:
             notes[(n-21)%12] += 1
     sharps = 0
     flats = 0
