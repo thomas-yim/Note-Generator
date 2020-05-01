@@ -11,7 +11,7 @@ def get_notes(df, model_path, signal, sr):
     step = int(sr/10)
     pitch = []
     for i in tqdm(df.index):
-        if df['pitch'][i] == 0:
+        if df['type'][i] == 0:
             pitch.append(0)
         else:
             cqt = []
@@ -42,9 +42,9 @@ def recognizeSong(filename):
     signal, rate = librosa.load(song_path, 16000)
     
     df = pd.DataFrame(sa.split_into_chunks(signal, rate))
-    
+    print(df.head)
     note_mask = []
-    for p in df['pitch']:
+    for p in df['type']:
         if p == 1:
             note_mask.append(True)
         else:
@@ -54,8 +54,8 @@ def recognizeSong(filename):
     
     df.insert(1, 'length', nt.classify_note_types(np.array(df['start']), np.array(df['end']), rate, bpm))
     
-    df['pitch'] = get_notes(df, model_path, signal, rate)
-    
+    df['type'] = get_notes(df, model_path, signal, rate)
+    print(df.head)
     print()
     print()
     print("Estimated tempo: " + str(bpm))

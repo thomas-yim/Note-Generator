@@ -3,7 +3,6 @@ import mingus.extra.lilypond as lily
 import mingus.containers as containers
 import subprocess
 import songTranslator as translator
-
 #The following code is modeled after the mingus.extra.lilypond library
 def save_string_and_execute_LilyPond(lilyString, filename):
     file = open(filename + ".ly", "a")
@@ -89,4 +88,4 @@ def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='lengthTe
         
 fname = input("What is the name of the file?: ")
 df = translator.recognizeSong(fname)
-create_sheet(np.array(df['pitch']), np.array(df['length']), song_name=fname, fname=fname)
+create_sheet(np.array(df['type']), np.array(df['length']), song_name=fname, fname=fname)

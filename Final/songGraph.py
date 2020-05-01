@@ -13,25 +13,16 @@ def plot_signals(signal):
     plt.plot(signal)
 
 
-def graphCQT(signal, rate):
-    C = np.abs(librosa.cqt(signal, sr=rate))
-    plt.subplots(figsize=(20,5))
-    librosa.display.specshow(librosa.amplitude_to_db(C, ref=np.max),
-                             sr=rate, x_axis='time', y_axis='cqt_note')
-    plt.colorbar(format='%+2.0f dB')
-    plt.title('Constant-Q power spectrum')
-    plt.tight_layout()
-    plt.show()
-    return C
-
 #This prints the graphs split at each note/rest
 def printSplitGraphs(df, signal):
     for i in range(0, len(df)):
         row = df.iloc[i]
-        cutSignal = signal[row['start']:row['end']]
+        cutSignal = signal[int(row['start']):int(row['end'])]
         plot_signals(cutSignal)
         plt.show()
+        #Get the array of the rolling maximums from this section
         maxValues = rollingMax(cutSignal, int(16000/64))
+        #Print the average rolling maximum from this section
         print(sum(maxValues)/len(maxValues))
 
 signal, rate = librosa.load('testsongs/n4r4r2n2r2n1.wav', sr=16000)
@@ -41,29 +32,14 @@ signal, rate = librosa.load('testsongs/n4r4r2n2r2n1.wav', sr=16000)
 plot_signals(list(signal))
 plt.show()
 
-
+#This is just to plot the upper half of signal
 plot_signals(list(abs(signal)))
 
-df = split_into_chunks(signal, rate)
-tempo = df.iloc[1]["Tempo Starts"] - df.iloc[0]["Tempo Starts"]
-currentStart = df.iloc[0]['start']
-starts = []
-endings = []
-while currentStart < df.iloc[len(df['start'])-1]['start']+5*tempo:
-    starts.append(currentStart)
-    endings.append(currentStart+tempo)
-    currentStart += tempo
 
-newdf = pd.DataFrame({'start':starts,'end':endings}, columns=['start','end'])
-    
-for i in range(0, len(df)):
-    row = df.iloc[i]
-    cutSignal = signal[row['start']:row['end']]
-    maxValues = rollingMax(cutSignal, int(16000/64))
-    average = sum(maxValues)/len(maxValues)
-    
-    
-printSplitGraphs(newdf, signal)
+df = split_into_chunks(signal, rate)
+
+#Print the graphs to see if we split it correctly
+printSplitGraphs(df, signal)
 
 '''
 NOTE: THE FOLLOWING CODE IS a WORKING VERSIONS THAT IS LESS VERSATILE...
@@ -130,6 +106,25 @@ for i in range(0,len(signal)):
         for j in range(last, i-1):
             listSignal[j+1] = listSignal[j] + slope
         last = i
+        
+        
+    The following code checks for any rests by thresholding silence
+    
+    endings = []
+    notesAndRestStarts = []
+    for i in range(0, len(noteStarts)-1):
+        notesAndRestStarts.append(noteStarts[i])
+        noteTypes.append(1)
+        for maxIndex in range(noteStarts[i], noteStarts[i+1], rollingSize):     
+            if (maxValues[int(maxIndex/rollingSize)+1] < silenceThresh):
+                endings.append(maxIndex+1)
+                notesAndRestStarts.append(maxIndex+1)
+                endings.append(noteStarts[i+1])
+                noteTypes.append(0)
+                break
+        
+    notesAndRestStarts.append(noteStarts[i+1])
+    noteTypes.append(1)
 '''
     
     
