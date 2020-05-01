@@ -25,15 +25,9 @@ def split_into_chunks(signal, sr):
     #Check for the maximum ever 1/64 of a second
     rollingSize = int(sr/64)
     
-    #The lowest max value for a rolling window that classifies as silence
-    silenceThresh = 0.1
-    
-    #Gets rid of all the negatives because it is a mirror image across x-axis
-    signal = list(abs(signal))
+    signal = list(signal)
     
     maxValues = rollingMax(signal, rollingSize)
-    
-    sixteenth = int(sr/16)
     
     #This will contain all indices of places where the sound spikes
     spikeLocations = []
@@ -61,66 +55,112 @@ def split_into_chunks(signal, sr):
     #This will become equal to the smallest interval betwen notes (shortest note)
     _min = float('inf')
     
+    #This will make sure that notes are at least 1/16 a second apart
+    sixteenth = int(sr/16)
+    
     for j in range(0, len(spikeLocations)-1):
         change = spikeLocations[j+1] - spikeLocations[j]    
-        #If the time between the supposed start of two notes is less than a set
-        #time, then it wont be added to the new array of note starts
+        #If the time between the supposed start of two notes is at least 1/16
+        #of a second, then it will be added to the new array of note starts
         if change > sixteenth:
-            #This is to find the length of the shortest note to compare others to
+            #This is to find the length of the shortest note to later
+            #find when the audio file ends
             if change < _min:
                 _min = change
             noteStarts.append(spikeLocations[j+1])
             noteTypes.append(1)
     
             
-    """
-    The following code checks for any rests
-    
-    endings = []
-    notesAndRestStarts = []
-    for i in range(0, len(noteStarts)-1):
-        notesAndRestStarts.append(noteStarts[i])
-        noteTypes.append(1)
-        for maxIndex in range(noteStarts[i], noteStarts[i+1], rollingSize):     
-            if (maxValues[int(maxIndex/rollingSize)+1] < silenceThresh):
-                endings.append(maxIndex+1)
-                notesAndRestStarts.append(maxIndex+1)
-                endings.append(noteStarts[i+1])
-                noteTypes.append(0)
-                break
-        
-    notesAndRestStarts.append(noteStarts[i+1])
-    noteTypes.append(1)
-    """
+    #A note ends when another starts
     endings = noteStarts[1:]
     """
     The previous loops get the starts of all notes and the ends of all but the last note
     This just checks to see when it gets quiet enough where the note should end.
     """
+    #The lowest max value for a rolling window that classifies as silence
+    silenceThresh = 0.02
+    #make sure the file is at least one more note long
     if len(signal) - noteStarts[-1] < _min:
         finalEnd = len(signal)
     else:
+        #If it reached here, there is at least another note of length left
         finalEnd = noteStarts[-1]
         while len(signal) - finalEnd > _min:
+            #If it dies down to under our threshold, it is silence
             if max(signal[finalEnd : finalEnd + _min]) < silenceThresh:
                 break
             finalEnd += _min
     
     endings.append(finalEnd)
     #Put it in a dataframe to be used by noteType.py
-    dataframe = {'pitch':noteTypes, 'start':noteStarts, 'end':endings}
-    df = pd.DataFrame(dataframe, columns=['pitch', 'start', 'end'])
+    dataframe = {'type':noteTypes, 'start':noteStarts, 'end':endings}
+    df = pd.DataFrame(dataframe, columns=['type', 'start', 'end'])
     
     note_mask = []
-    for p in df['pitch']:
+    for p in df['type']:
+        #p will equal 1 when it is a note not a rest
         if p == 1:
             note_mask.append(True)
         else:
             note_mask.append(False)
     bpm = noteType.get_bpm(np.array(df['start'][note_mask]), sr)
     print(bpm)
-    tempoStarts = [df['start'][0]]
-    for i in range(1, len(df['start'])):
-        tempoStarts.append(tempoStarts[i-1] + int(sr*60/bpm))
-    df.insert(2, "Tempo Starts", tempoStarts)
-    return df
+    
+    #This is the number of data points per beat. 16000*60/bpm
+    tempo = int(sr*60/bpm)
+    
+    currentStart = df.iloc[0]['start']
+    #These will be the possible starts of notes according to the tempo
+    starts = []
+    #These are the ends according to the tempo
+    endings = []
+    
+    #While the start is less than the last start plus four tempos (a bar=4 quarters)
+    #Calculate possible starts based on tempo
+    while currentStart < df.iloc[-1]['start']+4*tempo:
+        starts.append(currentStart)
+        endings.append(currentStart+tempo)
+        currentStart += tempo
+    
+    #Add this to a new dataframe where everything is determined by tempo
+    tempodf = pd.DataFrame({'start':starts,'end':endings}, columns=['start','end'])
+        
+    #This will keep track of what type of note it is
+    #1 means it is a note
+    #0 means it is a rest
+    #-1 means it is a continuation of a previous note
+    noteTypes = []
+    #This is important to finding if they are long notes or notes+rest
+    previousAvg = 0
+    for i in range(0, len(tempodf)):
+        row = tempodf.iloc[i]
+        cutSignal = signal[row['start']:row['end']]
+        #The following two lines takes the average of the rolling maximum.
+        maxValues = rollingMax(cutSignal, int(16000/64))
+        average = sum(maxValues)/len(maxValues)
+        print(average)
+        #Looking at the data, the average is always decreasing
+        #So, if it increases, it is a new note
+        if average > previousAvg:
+            noteTypes.append(1)
+        #If the next average is more than half the previous one, it is a held note
+        elif previousAvg/average < 2:
+            noteTypes.append(-1)
+        #If the next average is smaller than a half the average, it is a rest
+        else:
+            
+            noteTypes.append(0)
+        previousAvg = average
+    
+    #Add this type column to the dataframe
+    tempodf.insert(0, "type", noteTypes)
+    print(tempodf.head)
+    endOfFile = tempodf.iloc[-1]['end']
+    #This deletes all rows where it is a continuation of a held note
+    tempodf = tempodf[tempodf.type != -1]
+    #This is df['end'] = df['start'][1:] but they aren't hashable so we loop it
+    for j in range(1, len(tempodf)):
+        tempodf.iloc[j-1]['end'] = tempodf.iloc[j]['start']
+    tempodf.iloc[-1]['end'] = endOfFile
+    
+    return tempodf
