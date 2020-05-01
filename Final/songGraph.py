@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import librosa
 from librosa import display
-from splitAudio import split_into_chunks
+from splitAudio import split_into_chunks, rollingMax
 
 #This plots the wav file so we can see where the spikes are
 def plot_signals(signal):
@@ -25,13 +25,16 @@ def graphCQT(signal, rate):
     return C
 
 #This prints the graphs split at each note/rest
-def printSplitGraphs(df):
+def printSplitGraphs(df, signal):
     for i in range(0, len(df)):
         row = df.iloc[i]
-        plot_signals(signal[row['start']:row['end']])
+        cutSignal = signal[row['start']:row['end']]
+        plot_signals(cutSignal)
         plt.show()
+        maxValues = rollingMax(cutSignal, int(16000/64))
+        print(sum(maxValues)/len(maxValues))
 
-signal, rate = librosa.load('songfiles/test7.wav', sr=16000)
+signal, rate = librosa.load('testsongs/n4r4r2n2r2n1.wav', sr=16000)
 
 
 #This plots the normal signal. It is hard to see, but it crosses the x-axis frequently
@@ -42,11 +45,28 @@ plt.show()
 plot_signals(list(abs(signal)))
 
 df = split_into_chunks(signal, rate)
+tempo = df.iloc[1]["Tempo Starts"] - df.iloc[0]["Tempo Starts"]
+currentStart = df.iloc[0]['start']
+starts = []
+endings = []
+while currentStart < df.iloc[len(df['start'])-1]['start']+5*tempo:
+    starts.append(currentStart)
+    endings.append(currentStart+tempo)
+    currentStart += tempo
 
-#printSplitGraphs(df)
+newdf = pd.DataFrame({'start':starts,'end':endings}, columns=['start','end'])
+    
+for i in range(0, len(df)):
+    row = df.iloc[i]
+    cutSignal = signal[row['start']:row['end']]
+    maxValues = rollingMax(cutSignal, int(16000/64))
+    average = sum(maxValues)/len(maxValues)
+    
+    
+printSplitGraphs(newdf, signal)
 
 '''
-NOTE: THE FOLLOWING CODE IS ARE WORKING VERSIONS THAT IS LESS VERSATILE...
+NOTE: THE FOLLOWING CODE IS a WORKING VERSIONS THAT IS LESS VERSATILE...
 
 THRESHOLDING MIN VERSUS MAX WITHIN A ROLLING WINDOW OF 100
 changes = []
