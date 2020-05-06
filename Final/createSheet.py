@@ -18,7 +18,7 @@ def save_string_and_execute_LilyPond(lilyString, filename):
 def find_key(song_notes):
     notes = np.zeros(12)
     for n in song_notes:
-        if note != 0:
+        if n != 0:
             notes[(n-21)%12] += 1
     sharps = 0
     flats = 0
