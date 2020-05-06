@@ -58,7 +58,7 @@ def build_rand_feat():
             rand_index = np.random.randint(0, wav.shape[0]-config.step)
             sample = wav[rand_index:rand_index+config.step]
             # edited to use librosa.cqt instead of mfcc
-            X_sample = librosa.cqt(sample, sr=rate)
+            X_sample = abs(librosa.cqt(sample, sr=rate))
             _min = min(np.amin(X_sample), _min)
             _max = max(np.amax(X_sample), _max)
             X.append(X_sample)
@@ -81,11 +81,14 @@ def get_conv_model():
     model = Sequential()
     model.add(Conv2D(32, (3,3), activation='relu', strides=(1,1), 
                      padding='same', input_shape=input_shape))
+    model.add(MaxPool2D((2,2)))
+    model.add(Dropout(0.5))
+    model.add(Conv2D(32, (3,3), activation='relu', strides=(1,1), 
+                     padding='same'))
     model.add(Conv2D(64, (3,3), activation='relu', strides=(1,1), 
                      padding='same'))
     model.add(Conv2D(128, (3,3), activation='relu', strides=(1,1), 
                      padding='same'))
-    model.add(MaxPool2D((2,2)))
     model.add(Dropout(0.5))
     model.add(Flatten())
     model.add(Dense(128, activation='relu'))
@@ -142,7 +145,7 @@ checkpoint = ModelCheckpoint(config.model_path, monitor='val_acc', verbose=1,
                              save_weights_only=False, period=1)
 '''
 
-model.fit(X, y, epochs=20, shuffle=True, verbose=1)
+model.fit(X, y, epochs=12, shuffle=True, verbose=1)
 
 #This saves the model to be used later in predict and songTranslator
 model.save(config.model_path)

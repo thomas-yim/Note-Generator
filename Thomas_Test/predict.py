@@ -37,7 +37,7 @@ def build_predictions(audio_dir):
         for i in range(0, wav.shape[0]-config.step, config.step):
             sample = wav[i:i+config.step]
             # edited to use librosa.cqt instead of mfcc
-            x = librosa.cqt(sample, sr=rate)
+            x = abs(librosa.cqt(sample, sr=rate))
             x = (x - config.min) / (config.max - config.min)
             x = x.reshape(x.shape[0], x.shape[1], 1)
             test_audio.append(x)
@@ -56,10 +56,7 @@ jsonPath = "notefiles/examples.json"
 #This is from another file. Puts the wav signal and label in a dataframe
 df = createDataFrameFromJson(audio_dir + "/", jsonPath, instrument)
 #Get a list of all the possible labels
-classes = list([21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,
-                44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,
-                66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,
-                88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108])
+classes = list(range(21,109))
 #This makes it an iterable dictionary
 fn2class = dict(zip(df.index, df.pitches))
 p_path = os.path.join("pickles", instrument + "_train.p")

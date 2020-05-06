@@ -138,7 +138,6 @@ def split_into_chunks(signal, sr):
         #The following two lines takes the average of the rolling maximum.
         maxValues = rollingMax(cutSignal, int(16000/64))
         average = sum(maxValues)/len(maxValues)
-        print(average)
         #Looking at the data, the average is always decreasing
         #So, if it increases, it is a new note
         if average > previousAvg:
@@ -154,7 +153,6 @@ def split_into_chunks(signal, sr):
     
     #Add this type column to the dataframe
     tempodf.insert(0, "type", noteTypes)
-    print(tempodf.head)
     endOfFile = tempodf.iloc[-1]['end']
     #This deletes all rows where it is a continuation of a held note
     tempodf = tempodf[tempodf.type != -1]
