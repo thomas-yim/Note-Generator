@@ -9,4 +9,4 @@ def save_string_and_execute_LilyPond(ly_string, filename):
     p = subprocess.Popen(command, shell=True).wait()
     return True
 
-save_string_and_execute_LilyPond('test')
+save_string_and_execute_LilyPond('test', 'test')

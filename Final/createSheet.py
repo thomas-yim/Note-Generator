@@ -7,6 +7,7 @@ import songTranslator as translator
 def save_string_and_execute_LilyPond(lilyString, filename):
     file = open(filename + ".ly", "a")
     file.write(lilyString)
+    print(filename)
     file.close()
     command = 'lilypond "%s.ly"' % (filename)
     print("Executing...")
