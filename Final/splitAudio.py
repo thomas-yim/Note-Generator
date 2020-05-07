@@ -126,55 +126,83 @@ def split_into_chunks(signal, sr):
         bpm = noteType.get_bpm(np.array(df['start'][note_mask][10:20]), sr)
     else:
         bpm = noteType.get_bpm(np.array(df['start'][note_mask]), sr)
-    print(bpm)
+    print("BPM: " + str(bpm))
     
     #This is the number of data points per beat. 16000*60/bpm
     tempo = int(sr*60/bpm)
-    print(tempo)
-    currentStart = df.iloc[0]['start']
+    print("Tempo: " + str(tempo))
+    print(df.head)
     #These will be the possible starts of notes according to the tempo
     starts = []
     #These are the ends according to the tempo
     endings = []
-    
+    noteTypes=[]
     #While the start is less than the last start plus four tempos (a bar=4 quarters)
     #Calculate possible starts based on tempo
-    while currentStart < df.iloc[-1]['start']+4*tempo:
-        starts.append(currentStart)
-        endings.append(currentStart+tempo)
-        currentStart += tempo
+    for k in range(0, len(df['start'])):
+        if k != len(df['start'])-1:
+            if int(round((df['start'][k+1] - df['start'][k])/tempo,0)) >= 2:
+                checkForRestIndex = df['start'][k]
+                previousAvg = 0
+                while int(round((df['start'][k+1] - checkForRestIndex)/tempo,0)) > 0:
+                    starts.append(checkForRestIndex)
+                    if int(round((df['start'][k+1] - checkForRestIndex)/tempo,0)) == 1:
+                        end = df['start'][k+1]
+                    else:
+                        end = checkForRestIndex + tempo
+                    print(end)
+                    endings.append(end)
+                    cutSignal = signal[checkForRestIndex:end]
+                    maxValues = rollingMax(cutSignal, int(16000/64))
+                    average = sum(maxValues)/len(maxValues)
+                    if average > previousAvg:
+                        noteTypes.append(1)
+                    #If the next average is more than half the previous one, it is a held note
+                    elif previousAvg/average < 2:
+                        noteTypes.append(-1)
+                    #If the next average is smaller than a half the average, it is a rest
+                    else:
+                        noteTypes.append(0)
+                    previousAvg = average
+                    checkForRestIndex += tempo
+            else:
+                starts.append(df['start'][k])
+                endings.append(df['start'][k+1])
+                noteTypes.append(1)
+        else:
+            checkForRestIndex = df['start'][k]
+            previousAvg = 0
+            finalEnd = df['start'][k]+4*tempo
+            print(finalEnd)
+            while int(round((finalEnd - checkForRestIndex)/tempo,0)) > 0:
+                starts.append(checkForRestIndex)
+                if int(round((finalEnd - checkForRestIndex)/tempo,0)) == 1:
+                    end = finalEnd
+                else:
+                    end = checkForRestIndex + tempo
+                endings.append(end)
+                cutSignal = signal[checkForRestIndex:end]
+                maxValues = rollingMax(cutSignal, int(16000/64))
+                average = sum(maxValues)/len(maxValues)
+                if average > previousAvg:
+                    noteTypes.append(1)
+                #If the next average is more than half the previous one, it is a held note
+                elif previousAvg/average < 2:
+                    noteTypes.append(-1)
+                #If the next average is smaller than a half the average, it is a rest
+                else:
+                    noteTypes.append(0)
+                previousAvg = average
+                checkForRestIndex += tempo
+            
     
     #Add this to a new dataframe where everything is determined by tempo
     tempodf = pd.DataFrame({'start':starts,'end':endings}, columns=['start','end'])
-    printSplitGraphs(tempodf, signal)
-    #This will keep track of what type of note it is
-    #1 means it is a note
-    #0 means it is a rest
-    #-1 means it is a continuation of a previous note
-    noteTypes = []
-    #This is important to finding if they are long notes or notes+rest
-    previousAvg = 0
-    for i in range(0, len(tempodf)):
-        row = tempodf.iloc[i]
-        cutSignal = signal[row['start']:row['end']]
-        #The following two lines takes the average of the rolling maximum.
-        maxValues = rollingMax(cutSignal, int(16000/64))
-        average = sum(maxValues)/len(maxValues)
-        #Looking at the data, the average is always decreasing
-        #So, if it increases, it is a new note
-        if average > previousAvg:
-            noteTypes.append(1)
-        #If the next average is more than half the previous one, it is a held note
-        elif previousAvg/average < 2:
-            noteTypes.append(-1)
-        #If the next average is smaller than a half the average, it is a rest
-        else:
-            
-            noteTypes.append(0)
-        previousAvg = average
+    print(noteTypes)
     
     #Add this type column to the dataframe
     tempodf.insert(0, "type", noteTypes)
+    print(tempodf)
     endOfFile = tempodf.iloc[-1]['end']
     #This deletes all rows where it is a continuation of a held note
     tempodf = tempodf[tempodf.type != -1]

@@ -26,7 +26,7 @@ def printSplitGraphs(df, signal):
         #Print the average rolling maximum from this section
         print(sum(maxValues)/len(maxValues))
 
-signal, rate = librosa.load('testsongs/n4r4r2n2r2n1.wav', sr=16000)
+signal, rate = librosa.load('testsongs/Guitar1.wav', sr=16000)
 
 
 #This plots the normal signal. It is hard to see, but it crosses the x-axis frequently
