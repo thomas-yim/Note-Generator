@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import librosa
 from librosa import display
 from splitAudio import split_into_chunks, rollingMax
+import matplotlib.pyplot as plt
 
 #This plots the wav file so we can see where the spikes are
 def plot_signals(signal):
@@ -25,7 +26,7 @@ def printSplitGraphs(df, signal):
         #Print the average rolling maximum from this section
         print(sum(maxValues)/len(maxValues))
 
-signal, rate = librosa.load('testsongs/piano1.wav', sr=16000)
+signal, rate = librosa.load('testsongs/n4r4r2n2r2n1.wav', sr=16000)
 
 
 #This plots the normal signal. It is hard to see, but it crosses the x-axis frequently

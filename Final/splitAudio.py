@@ -1,6 +1,26 @@
 import pandas as pd
 import noteType
 import numpy as np
+import matplotlib.pyplot as plt
+
+#This plots the wav file so we can see where the spikes are
+def plot_signals(signal):
+    plt.subplots(figsize=(20,5))
+    plt.plot(signal)
+
+
+#This prints the graphs split at each note/rest
+def printSplitGraphs(df, signal):
+    for i in range(0, len(df)):
+        row = df.iloc[i]
+        cutSignal = signal[int(row['start']):int(row['end'])]
+        plot_signals(cutSignal)
+        plt.show()
+        #Get the array of the rolling maximums from this section
+        maxValues = rollingMax(cutSignal, int(16000/64))
+        #Print the average rolling maximum from this section
+        print(sum(maxValues)/len(maxValues))
+
 def rollingMax(signal, rollingSize):
     """
     The following code will use a rolling window and take the max to normalize the data
@@ -95,7 +115,6 @@ def split_into_chunks(signal, sr):
     #Put it in a dataframe to be used by noteType.py
     dataframe = {'type':noteTypes, 'start':noteStarts, 'end':endings}
     df = pd.DataFrame(dataframe, columns=['type', 'start', 'end'])
-    
     note_mask = []
     for p in df['type']:
         #p will equal 1 when it is a note not a rest
@@ -103,12 +122,15 @@ def split_into_chunks(signal, sr):
             note_mask.append(True)
         else:
             note_mask.append(False)
-    bpm = noteType.get_bpm(np.array(df['start'][note_mask]), sr)
+    if len(df['start']) > 10:
+        bpm = noteType.get_bpm(np.array(df['start'][note_mask][10:20]), sr)
+    else:
+        bpm = noteType.get_bpm(np.array(df['start'][note_mask]), sr)
     print(bpm)
     
     #This is the number of data points per beat. 16000*60/bpm
     tempo = int(sr*60/bpm)
-    
+    print(tempo)
     currentStart = df.iloc[0]['start']
     #These will be the possible starts of notes according to the tempo
     starts = []
@@ -124,7 +146,7 @@ def split_into_chunks(signal, sr):
     
     #Add this to a new dataframe where everything is determined by tempo
     tempodf = pd.DataFrame({'start':starts,'end':endings}, columns=['start','end'])
-        
+    printSplitGraphs(tempodf, signal)
     #This will keep track of what type of note it is
     #1 means it is a note
     #0 means it is a rest
