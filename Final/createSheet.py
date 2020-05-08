@@ -59,11 +59,15 @@ def find_key(song_notes):
 
 
 def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='lengthTest'):
+    last_note = -1
+    for i in range(len(song_notes)):
+        if song_notes[i] > 0:
+            last_note = i
     key = find_key(song_notes)
     bars = [containers.Bar(key=key)]
     current_bar = 0
     bar_length = 0
-    for i in range(0, len(song_notes)):
+    for i in range(0, last_note+1):
         note = song_notes[i]
         if bar_length >= 1:
             bars.append(containers.Bar(key=key))

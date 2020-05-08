@@ -102,6 +102,15 @@ def flatten_cqt(cqt, peaks, exclude_peak):
             peaks = np.delete(peaks, to_delete[d])
             d -= 1
     return new_cqt
+
+def normal_graph_cqt(signal, rate):
+    C = np.abs(librosa.cqt(signal, sr=rate))
+    librosa.display.specshow(librosa.amplitude_to_db(C, ref=np.max),
+                             sr=rate, x_axis='time', y_axis='cqt_note')
+    plt.colorbar(format='%+2.0f dB')
+    plt.title('Constant-Q power spectrum')
+    plt.tight_layout()
+    plt.show()
 '''
 instrument = 'guitar'
 
@@ -117,3 +126,8 @@ for i in range(50,60):
     cqts.append(graph_cqt(signal, rate))'''
 signal, rate = librosa.load('chords/chord1.wav')
 cqts = graph_cqt(signal,rate)
+
+signal, rate = librosa.load('chords/ctest.wav')
+normal_graph_cqt(signal,rate)
+signal, rate = librosa.load('chords/etest.wav')
+normal_graph_cqt(signal,rate)
