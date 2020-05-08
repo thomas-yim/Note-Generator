@@ -20,6 +20,8 @@ def printSplitGraphs(df, signal):
         maxValues = rollingMax(cutSignal, int(16000/64))
         #Print the average rolling maximum from this section
         print(sum(maxValues)/len(maxValues))
+        print(maxValues[0])
+        print(maxValues[int(len(maxValues)/2)])
 
 def rollingMax(signal, rollingSize):
     """
@@ -157,8 +159,10 @@ def split_into_chunks(signal, sr):
                     average = sum(maxValues)/len(maxValues)
                     if average > previousAvg:
                         noteTypes.append(1)
+                    elif noteTypes[-1] == 0:
+                        noteTypes.append(0)
                     #If the next average is more than half the previous one, it is a held note
-                    elif previousAvg/average < 2:
+                    elif maxValues[0]/maxValues[int(len(maxValues)/2)] < 2:
                         noteTypes.append(-1)
                     #If the next average is smaller than a half the average, it is a rest
                     else:
@@ -186,8 +190,10 @@ def split_into_chunks(signal, sr):
                 average = sum(maxValues)/len(maxValues)
                 if average > previousAvg:
                     noteTypes.append(1)
+                elif noteTypes[-1] == 0:
+                    noteTypes.append(0)
                 #If the next average is more than half the previous one, it is a held note
-                elif previousAvg/average < 2:
+                elif maxValues[0]/maxValues[int(len(maxValues)/2)] < 2:
                     noteTypes.append(-1)
                 #If the next average is smaller than a half the average, it is a rest
                 else:
@@ -199,6 +205,7 @@ def split_into_chunks(signal, sr):
     #Add this to a new dataframe where everything is determined by tempo
     tempodf = pd.DataFrame({'start':starts,'end':endings}, columns=['start','end'])
     print(noteTypes)
+    printSplitGraphs(tempodf, signal)
     
     #Add this type column to the dataframe
     tempodf.insert(0, "type", noteTypes)

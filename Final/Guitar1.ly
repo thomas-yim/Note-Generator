@@ -1,1 +1,1 @@
-\header { title = "Guitar1" composer = "" opus = "" } { { c'2 e'2 } { c'1 } { d'4 c'2 } { c'4 d'4 } { c'4 g2 } { r4 r2 } }
+\header { title = "Guitar1" composer = "" opus = "" } { { c'4 c'4 d'4 e'4 } { c'4 e'4 d'4 g4 } { c'4 c'4 d'4 e'4 } { c'2 b2 } { c'4 c'4 d'4 e'4 } { f'4 e'4 d'4 c'4 } { b4 g4 a4 b4 } { c'2 c'2 } { r4 r4 } }
