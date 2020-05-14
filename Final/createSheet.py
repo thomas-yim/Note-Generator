@@ -14,7 +14,9 @@ def save_string_and_execute_LilyPond(lilyString, filename):
     p = subprocess.Popen(command, shell=True).wait()
     return True
 
-
+"""
+This returns the key of the song.
+"""
 def find_key(song_notes):
     notes = np.zeros(12)
     for n in song_notes:
@@ -58,11 +60,19 @@ def find_key(song_notes):
     return key
 
 
-def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='lengthTest'):
+def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='test1'):
     last_note = -1
-    for i in range(len(song_notes)):
+    for i in range(len(song_notes)-1,-1,-1):
+        last_note = i
         if song_notes[i] > 0:
-            last_note = i
+            break
+        else:
+            location = 0
+            for note in note_lengths[:i+1]:
+                location += 1/note
+            if location % 1 == 0:
+                break
+        
     key = find_key(song_notes)
     bars = [containers.Bar(key=key)]
     current_bar = 0
@@ -74,11 +84,9 @@ def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='lengthTe
             current_bar += 1
             bar_length = 0
         if note != 0:
-            print(note_lengths[i])
             print(bars[current_bar].place_notes(containers.Note().from_int(note - 12), note_lengths[i]))
         else:
             bars[current_bar].place_rest(note_lengths[i])
-        print(bars)
         bar_length += 1/note_lengths[i]
     track = containers.Track()
     print(bars)
@@ -88,8 +96,9 @@ def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='lengthTe
     comp.add_track(track)
     comp.set_title(song_name)
     lily_string = lily.from_Composition(comp)
-    save_string_and_execute_LilyPond(lily_string, fname)
+    save_string_and_execute_LilyPond(lily_string, song_name)
         
 fname = input("What is the name of the file?: ")
+pdfName = input("What would you like to name the song? ")
 df = translator.recognizeSong(fname)
-create_sheet(np.array(df['type']), np.array(df['length']), song_name=fname, fname=fname)
+create_sheet(np.array(df['type']), np.array(df['length']), song_name=pdfName, fname=fname)

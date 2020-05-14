@@ -10,6 +10,17 @@ import json
 import clean
 from createDf import createDataFrameFromJson
 
+"""
+The following four functions are ways to visualize the audio.
+plot_signals prints the signal with the x-axis as time
+plot_fft prints the fast fourier transform. It is basically a function
+    that takes the audio and creates a unique audio fingerprint. But
+    we never ended up using this because the constant q transform actually
+    does a better job of separating notes (cqt has a 84,4 structure while fft
+    only has 13,8 and more data means more features for the model)
+plot_mfcc and plot_fbank help with the fft
+Note: These were taken from the audio classification tutorial on YouTube
+"""
 def plot_signals(signals):
     fig, axes = plt.subplots(nrows=2, ncols=5, sharex=False,
                              sharey=True, figsize=(20,5))
@@ -66,6 +77,7 @@ def plot_mfccs(mfccs):
             axes[x,y].get_yaxis().set_visible(False)
             i += 1
 
+
 def envelope(y, rate, threshold):
     mask = []
     y = pd.Series(y).apply(np.abs)    
@@ -83,6 +95,8 @@ def calc_fft(y, rate):
     Y = abs(np.fft.rfft(y)/n)
     return (Y, freq)
 
+#This adds a "_clean" or "_clean_test" to the end to be later used by the model
+#or prediction program.
 trainData = input("Is this for a train dataset (True or False case sensitive): ")
 print(type(trainData))
 if (trainData == "True"):
@@ -132,5 +146,6 @@ plot_mfccs(mfccs)
 plt.show()
 
 print(audioDir)
+#This populates a new directory with cleaned data. Cleaned data gets rid of extended periods of silence.
 clean.cleanData(df, audioDir, instrument + dataType)
     

@@ -23,12 +23,12 @@ def printSplitGraphs(df, signal):
         print(maxValues[0])
         print(maxValues[int(len(maxValues)/2)])
 
+"""
+The following code will use a rolling window and take the max to normalize the data
+There will only 1/rollingSize left of the data, but it is okay to leave out that
+many points because there are 16000 points per second to use
+"""
 def rollingMax(signal, rollingSize):
-    """
-    The following code will use a rolling window and take the max to normalize the data
-    There will only 1/rollingSize left of the data, but it is okay to leave out that
-    many points because there are 16000 points per second to use
-    """
     k=0
     maxValues=[]
     #Since the area is rolling, we need to stop it before it goes over
@@ -40,11 +40,13 @@ def rollingMax(signal, rollingSize):
         k += rollingSize
     return maxValues
 
-
+"""
+This returns a dataframe with the audio split into its starts, ends, and note/not note.
+"""
 def split_into_chunks(signal, sr):
     
     #CONSTANTS
-    #Check for the maximum ever 1/64 of a second
+    #Check for the maximum every 1/64 of a second
     rollingSize = int(sr/64)
     
     signal = list(signal)
@@ -78,6 +80,7 @@ def split_into_chunks(signal, sr):
     _min = float('inf')
     
     #This will make sure that notes are at least 1/16 a second apart
+    #This is fine because a note at 140 bpm is just over 2/5 of a second.
     sixteenth = int(sr/16)
     
     for j in range(0, len(spikeLocations)-1):
@@ -124,8 +127,11 @@ def split_into_chunks(signal, sr):
             note_mask.append(True)
         else:
             note_mask.append(False)
+    #When there are a lot of notes, the transient probability in noteType
+    #does not work as well so if it is over 10 notes, we take 5 from it.
+    #The reason it is 3:8 is it takes the middle 5 of that 10.
     if len(df['start']) > 10:
-        bpm = noteType.get_bpm(np.array(df['start'][note_mask][10:20]), sr)
+        bpm = noteType.get_bpm(np.array(df['start'][note_mask][3:8]), sr)
     else:
         bpm = noteType.get_bpm(np.array(df['start'][note_mask]), sr)
     print("BPM: " + str(bpm))
@@ -133,49 +139,61 @@ def split_into_chunks(signal, sr):
     #This is the number of data points per beat. 16000*60/bpm
     tempo = int(sr*60/bpm)
     print("Tempo: " + str(tempo))
-    print(df.head)
     #These will be the possible starts of notes according to the tempo
     starts = []
     #These are the ends according to the tempo
     endings = []
     noteTypes=[]
-    #While the start is less than the last start plus four tempos (a bar=4 quarters)
+    #While the start is less than the last start plus an extra bar (a bar=4 quarters)
     #Calculate possible starts based on tempo
     for k in range(0, len(df['start'])):
         if k != len(df['start'])-1:
+            #If the difference between two notes is longer than a quarter note, check for rests
             if int(round((df['start'][k+1] - df['start'][k])/tempo,0)) >= 2:
                 checkForRestIndex = df['start'][k]
+                #This becomes the rolling average. If it increases, it is always a new note
                 previousAvg = 0
+                #While there is still a quarter note of length unlabeled 
                 while int(round((df['start'][k+1] - checkForRestIndex)/tempo,0)) > 0:
                     starts.append(checkForRestIndex)
                     if int(round((df['start'][k+1] - checkForRestIndex)/tempo,0)) == 1:
                         end = df['start'][k+1]
                     else:
                         end = checkForRestIndex + tempo
-                    print(end)
                     endings.append(end)
                     cutSignal = signal[checkForRestIndex:end]
                     maxValues = rollingMax(cutSignal, int(16000/64))
                     average = sum(maxValues)/len(maxValues)
+                    #If the average increases, it is a new note
                     if average > previousAvg:
                         noteTypes.append(1)
+                    #If the last note is a rest and it doesn't increase, the next is a rest
                     elif noteTypes[-1] == 0:
                         noteTypes.append(0)
-                    #If the next average is more than half the previous one, it is a held note
+                    #If the max at the start/max halfway through the sound < 2
+                    #then it is a held note
                     elif maxValues[0]/maxValues[int(len(maxValues)/2)] < 2:
                         noteTypes.append(-1)
-                    #If the next average is smaller than a half the average, it is a rest
+                    #else it is a rest
                     else:
                         noteTypes.append(0)
                     previousAvg = average
                     checkForRestIndex += tempo
+            #If it wasn't longer than a quarter, add the start and end
             else:
                 starts.append(df['start'][k])
                 endings.append(df['start'][k+1])
                 noteTypes.append(1)
         else:
+            """
+            Note this code is similar to the above, BUT it is necessary to handle
+            the end of the file. The final boundary is not a new note because
+            it is the last note.
+            """
             checkForRestIndex = df['start'][k]
             previousAvg = 0
+            #We check for one more bar of length because there won't be more than
+            # a bar of rests at the end of a song.
             finalEnd = df['start'][k]+4*tempo
             print(finalEnd)
             while int(round((finalEnd - checkForRestIndex)/tempo,0)) > 0:
@@ -192,10 +210,8 @@ def split_into_chunks(signal, sr):
                     noteTypes.append(1)
                 elif noteTypes[-1] == 0:
                     noteTypes.append(0)
-                #If the next average is more than half the previous one, it is a held note
                 elif maxValues[0]/maxValues[int(len(maxValues)/2)] < 2:
                     noteTypes.append(-1)
-                #If the next average is smaller than a half the average, it is a rest
                 else:
                     noteTypes.append(0)
                 previousAvg = average
@@ -204,12 +220,9 @@ def split_into_chunks(signal, sr):
     
     #Add this to a new dataframe where everything is determined by tempo
     tempodf = pd.DataFrame({'start':starts,'end':endings}, columns=['start','end'])
-    print(noteTypes)
-    printSplitGraphs(tempodf, signal)
     
     #Add this type column to the dataframe
     tempodf.insert(0, "type", noteTypes)
-    print(tempodf)
     endOfFile = tempodf.iloc[-1]['end']
     #This deletes all rows where it is a continuation of a held note
     tempodf = tempodf[tempodf.type != -1]
