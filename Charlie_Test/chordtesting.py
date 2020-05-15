@@ -2,6 +2,7 @@ import librosa
 import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
+from tensorflow.keras.models import load_model
 
 def graph_cqt(signal, rate):
     C = np.abs(librosa.cqt(signal, sr=rate))
@@ -24,14 +25,15 @@ def graph_cqt(signal, rate):
 def separate_freqs(cqt):
     cqt = cqt.T
     maxes = np.zeros(84)
-    for t_slice in cqt:
-        _max = t_slice.max()
-        for freq in range(len(t_slice)):
-            if t_slice[freq] > 0.9*_max:
+    for t in range(int(len(cqt)/2)):
+        _max = cqt[t].max()
+        for freq in range(len(cqt[t])):
+            if cqt[t][freq] > 0.8*_max:
                 maxes[freq] += 1
+    print(maxes)
     peaks = []
     for i in range(len(maxes)):
-        if maxes[i] > len(cqt)/2:
+        if maxes[i] > len(cqt)/4:
             peaks.append(i)
     if len(peaks) > 1:
         sep_cqts = {}
@@ -46,7 +48,7 @@ def separate_freqs(cqt):
             sep_cqts[freq] = np.array(sep_cqts[freq]).T
         return sep_cqts
     else:
-        return cqt.T
+        return {0: cqt.T}
 
 def find_start(cqt, peaks, freq):
     if freq < 0:
@@ -111,21 +113,35 @@ def normal_graph_cqt(signal, rate):
     plt.title('Constant-Q power spectrum')
     plt.tight_layout()
     plt.show()
-'''
-instrument = 'guitar'
 
-with open('labels.json', 'r') as f:
-    exampleNotes = json.load(f)
-filenames = []
-for filename in exampleNotes:
-    if (filename[:len(instrument)] == instrument):
-        filenames.append(filename + ".wav")
-cqts = []
-for i in range(50,60):
-    signal, rate = librosa.load('guitar_clean/' + filenames[i])
-    cqts.append(graph_cqt(signal, rate))'''
-signal, rate = librosa.load('chords/chord1.wav')
+def get_notes(model_path, cqt):
+    model = load_model(model_path)
+    _min = np.min(cqt)
+    _max = np.max(cqt)
+    cqt = (np.array(cqt) - _min)/(_max - _min)
+    split_cqt = []
+    t = 4
+    while (t+3) < len((2/3)*cqt[0]):
+        split_cqt.append((cqt.T[t:t+4]).T)
+        t += 4
+    split_cqt = np.array(split_cqt)
+    split_cqt = split_cqt.reshape(split_cqt.shape[0], split_cqt.shape[1], split_cqt.shape[2], 1)
+    likelihood = np.zeros(88)
+    predict_pitches = model.predict(split_cqt)
+    s = 0
+    for segment in predict_pitches:
+        for note in range(len(segment)):
+            if len(predict_pitches) == 1 or s > 0:
+                likelihood[note] += predict_pitches[s][note]
+        s += 1
+    return np.argmax(likelihood)
+
+model_path = 'models/keyboard_electronic.model'
+
+signal, rate = librosa.load('chords/chords2.wav')
 cqts = graph_cqt(signal,rate)
+for c in cqts.values():
+    print(get_notes(model_path, c))
 
 signal, rate = librosa.load('chords/ctest.wav')
 normal_graph_cqt(signal,rate)
