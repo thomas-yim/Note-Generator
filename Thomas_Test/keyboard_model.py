@@ -4,6 +4,7 @@ Thomas Yim
 This file generates a pickle with randomized and processed data. It then trains
 the model for the keyboard
 
+Lots of this code is modeled after the Audio Classification Video Tutorial.
 """
 
 import os

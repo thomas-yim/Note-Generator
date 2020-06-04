@@ -7,16 +7,19 @@ import sys
 #The following code is modeled after the mingus.extra.lilypond library
 def save_string_and_execute_LilyPond(lilyString, filename):
     file = open(filename + ".ly", "a")
+    #The stuff added to the file is formatted for lilypond
     file.write(lilyString)
     print(filename)
     file.close()
     command = 'lilypond "%s.ly"' % (filename)
     print("Executing...")
+    #This allows us to run a shell script from python
     p = subprocess.Popen(command, shell=True).wait()
     return True
 
 """
 This returns the key of the song.
+It basically does this by comparing the number of flats and sharps
 """
 def find_key(song_notes):
     notes = np.zeros(12)
@@ -60,9 +63,14 @@ def find_key(song_notes):
         key = 'C'
     return key
 
-
+"""
+This will actually create the pdf. It calls all the functions from previous files
+It is basically our main() function
+"""
 def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='test1'):
     last_note = -1
+    #Our program checks for rests past the last note because the last note could
+    #be a half note or longer. So, we have to delete rests after the last note "ends"
     for i in range(len(song_notes)-1,-1,-1):
         last_note = i
         if song_notes[i] > 0:
@@ -73,7 +81,8 @@ def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='test1'):
                 location += 1/note
             if location % 1 == 0:
                 break
-        
+    
+    #The following code sets up the notes, durations, key, and rests in lilypond format
     key = find_key(song_notes)
     bars = [containers.Bar(key=key)]
     current_bar = 0
@@ -99,6 +108,9 @@ def create_sheet(song_notes, note_lengths, song_name='Untitled', fname='test1'):
     lily_string = lily.from_Composition(comp)
     save_string_and_execute_LilyPond(lily_string, song_name)
         
+#This is so we can run the program like python3 createSheet.py instrument filename name
+#If not, you can just input the values when run.
+#The sys.argv is mainly for the server use.    
 if len(sys.argv) ==  4:
     inst = sys.argv[1]
     fname = sys.argv[2]

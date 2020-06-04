@@ -57,6 +57,7 @@ def recognizeSong(filename, instrument):
     df = pd.DataFrame(sa.split_into_chunks(signal, rate))
     print(df.head)
     note_mask = []
+    #It will go through and add a True if it is a note and False if it is a rest
     for p in df['type']:
         if p == 1:
             note_mask.append(True)
