@@ -1,3 +1,4 @@
+
 import noteType as nt
 import splitAudio as sa
 import librosa
@@ -13,6 +14,7 @@ def get_notes(df, model_path, signal, sr):
     #The model recognizes with 1/10 of a second of the note
     step = int(sr/10)
     pitch = []
+    print("model: ", model)
     #For each of the notes given by splitaudio.py
     for i in tqdm(df.index):
         #If it is a rest, append a 0
@@ -33,6 +35,7 @@ def get_notes(df, model_path, signal, sr):
             #Must be scaled from 0 to 1
             cqt = (np.array(cqt) - _min)/(_max - _min)
             cqt = cqt.reshape(cqt.shape[0], cqt.shape[1], cqt.shape[2], 1)
+            print(cqt.shape[0], cqt.shape[1], cqt.shape[2], 1)
             predict_pitches = model.predict(cqt)
             likelihood = np.zeros(88)
             s = 0
@@ -44,9 +47,9 @@ def get_notes(df, model_path, signal, sr):
             pitch.append(np.argmax(likelihood) + 21)
     return pitch
             
-def recognizeSong(filename):
+def recognizeSong(filename, instrument):
     song_path = 'testsongs/' + filename + '.wav'
-    model_path = 'models/guitar.model'
+    model_path = 'models/' + instrument + '.model'
         
     signal, rate = librosa.load(song_path, 16000)
     

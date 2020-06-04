@@ -40,4 +40,4 @@ plot_signals(list(abs(signal)))
 df = split_into_chunks(signal, rate)
 
 #Print the graphs to see if we split it correctly
-#printSplitGraphs(df, signal)
+printSplitGraphs(df, signal)
